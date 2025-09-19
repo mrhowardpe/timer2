@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>PE Scoreboard — Final Build (v9)</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Covered+By+Your+Grace&family=Permanent+Marker&family=Slackey&family=Saira+Stencil+One&family=Bangers&family=Indie+Flower&family=Black+Ops+One&family=Luckiest+Guy&family=Monoton&family=Press+Start+2P&family=Lilita+One&family=Paytone+One&family=Patrick+Hand&family=Ranchers&family=Rubik+Spray+Paint&family=Jaro&family=Chakra+Petch:wght@700&display=swap" rel="stylesheet">
+
+<style>
+  :root{ --app-bg:#000; --ink:#fff; --outline:#000; --gap:12px; }
+  *{box-sizing:border-box;}
+  html,body{height:100%;margin:0;overflow:hidden;}
+  body{background:var(--app-bg);color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;}
+  .app{display:grid;grid-template-columns:25% 50% 25%;grid-template-rows:100dvh;height:100dvh;}
+  .col{padding:12px;overflow:hidden;}
+  .middle{display:grid;grid-template-rows:15% 50% 28% 7%;gap:var(--gap);height:100%;}
+
+  .title-wrap{display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
+  .title{font-family:"Covered By Your Grace",cursive;font-size:clamp(36px,8vw,96px);-webkit-text-stroke:2px var(--outline);text-shadow:-2px -2px 0 var(--outline),2px -2px 0 var(--outline),-2px 2px 0 var(--outline),2px 2px 0 var(--outline);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:text;outline:none;}
+  .title-tools{position:absolute;right:8px;bottom:8px;display:none;gap:6px;z-index:2;pointer-events:auto;}
+  .title-wrap.editing .title-tools{display:flex;}
+  .title-wrap:hover .title-tools{display:flex;} /* hover fallback */
+
+  .timer-wrap{position:relative;display:flex;align-items:center;justify-content:center;overflow:hidden;cursor:pointer;padding:8px;}
+  .time{display:inline-flex;gap:.06em;user-select:none;font-family:"Saira Stencil One",Impact,Haettenschweiler,"Arial Black",sans-serif;font-weight:800;line-height:.92;font-variant-numeric:tabular-nums;letter-spacing:.02em;color:var(--ink);-webkit-text-stroke:3px var(--outline);text-shadow:-3px -3px 0 var(--outline),3px -3px 0 var(--outline),-3px 3px 0 var(--outline),3px 3px 0 var(--outline);transform-origin:center;min-height:1em;}
+  .digit,.colon{display:inline-flex;align-items:center;justify-content:center;width:1ch;}
+  .colon{width:.7ch;}
+  .ms-two .d1{display:inline-flex;}
+  .ms-one .d1{display:none;}
+
+  .edit-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;padding:20px;z-index:9999;}
+  .edit-card{width:min(520px,96%);background:#0b1220;color:#fff;border-radius:16px;padding:16px;position:relative;outline:1px solid rgba(255,255,255,.15);}
+  .edit-card .close-x{position:absolute;top:8px;right:10px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.12);border-radius:8px;font-size:16px;line-height:1;padding:6px 10px;cursor:pointer;}
+  .row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+  .grow{flex:1;}
+  label{font-size:14px;color:#cbd5e1;}
+  input[type=number]{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #334155;background:#111827;color:#fff;font-size:18px;text-align:center;}
+
+  .controls{display:grid;grid-template-rows:1fr 1fr;gap:6px;}
+  .panel{display:flex;justify-content:center;align-items:center;gap:12px;overflow:hidden;flex-wrap:wrap;}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;min-width:128px;border-radius:12px;font-size:18px;background:rgba(255,255,255,.14);color:#fff;border:1px solid rgba(255,255,255,.25);cursor:pointer;user-select:none;white-space:nowrap;}
+  .btn:active{transform:translateY(1px) scale(.99);}
+  .icon{width:20px;height:20px;display:inline-block;}
+
+  .teams{display:grid;gap:12px;grid-template-rows:1fr 1fr 1fr;height:100%;}
+  .slot{position:relative;overflow:hidden;}
+  .team-card{height:100%;border-radius:12px;color:#fff;display:grid;grid-template-rows:40% 60%;overflow:hidden;box-shadow:0 8px 24px rgba(0,0,0,.35);padding:8px;position:relative;}
+  .t-name{display:flex;align-items:center;justify-content:center;overflow:hidden;}
+  .team-name{
+    font-family:"Slackey",system-ui;
+    font-size:72px; max-height:100%; line-height:1;
+    -webkit-text-stroke:1.6px var(--outline);
+    text-shadow:-2px -2px 0 var(--outline),2px -2px 0 var(--outline),-2px 2px 0 var(--outline),2px 2px 0 var(--outline);
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    cursor:text; outline:none; text-align:center;
+  }
+  .card-tools{position:absolute;right:8px;bottom:8px;display:flex;gap:8px;}
+  .tiny{width:40px;height:40px;border-radius:10px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;}
+
+  .score-wrap{display:flex;align-items:center;justify-content:center;gap:14px;height:100%;}
+  .score-btn{width:56px;height:56px;border-radius:12px;border:1px solid rgba(255,255,255,.35);background:rgba(255,255,255,.14);color:#fff;font-size:28px;font-weight:800;display:flex;align-items:center;justify-content:center;cursor:pointer;}
+  .score{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;font-weight:900;font-size:clamp(70px,10vw,140px);letter-spacing:.02em;line-height:1;min-width:2ch;text-align:center;color:var(--ink);-webkit-text-stroke:2px var(--outline);text-shadow:-2px -2px 0 var(--outline),2px -2px 0 var(--outline),-2px 2px 0 var(--outline),2px 2px 0 var(--outline);}
+
+  dialog#settings{border:none;border-radius:16px;padding:0;width:min(960px,96%);background:#0b1220;color:#fff;}
+  .sdg-head{padding:16px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:8px;}
+  .sdg-body{padding:16px;display:grid;gap:16px;}
+  .sdg-grid{display:grid;gap:14px;grid-template-columns:1fr 1fr;}
+  .sdg-card{border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:12px;background:#0a1020;}
+  .sdg-card h4{margin:0 0 8px;font-size:16px;}
+  select.btn{appearance:none;background:rgba(200,200,200,0.2);border-color:rgba(148,163,184,.5);padding-right:36px;min-width:260px;color:#ddd;}
+  select.btn option{color:#000;background:#eee;}
+  input[type=checkbox]{transform:scale(1.8);margin-right:8px;}
+  /* style color inputs like buttons */
+  input[type=color].btn{height:44px;min-width:128px;border-radius:12px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.14);padding:0 10px;}
+  @media (max-width:900px){.sdg-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+  <div class="app">
+    <aside class="col">
+      <div class="teams" id="leftTeams">
+        <div class="slot" data-row="1"></div>
+        <div class="slot" data-row="2"></div>
+        <div class="slot" data-row="3"></div>
+      </div>
+    </aside>
+
+    <main class="col middle">
+      <section class="title-wrap" id="titleWrap">
+        <div id="title" class="title" contenteditable="true" spellcheck="false" tabindex="0">P.E. SCOREBOARD</div>
+        <div class="title-tools" id="titleTools">
+          <button type="button" class="btn" id="titleSmaller">A−</button>
+          <button type="button" class="btn" id="titleBigger">A+</button>
+          <button type="button" class="btn" id="titleReset">Reset</button>
+        </div>
+      </section>
+
+      <section class="timer-wrap" id="timerWrap" title="Tap to set time">
+        <div class="time ms-one" id="time" aria-live="polite">
+          <span class="digit d1" id="d1">0</span><span class="digit" id="d2">1</span><span class="colon">:</span><span class="digit" id="d3">0</span><span class="digit" id="d4">0</span>
+        </div>
+        <div class="edit-overlay" id="editOverlay" aria-hidden="true">
+          <div class="edit-card" id="editCard">
+            <button type="button" class="close-x" id="closeOverlay" aria-label="Close">✕</button>
+            <div class="row" style="margin-bottom:10px;">
+              <div class="grow">
+                <label for="minutes">Minutes</label>
+                <input id="minutes" type="number" min="0" max="999" step="1" value="1">
+              </div>
+              <div class="grow">
+                <label for="seconds">Seconds</label>
+                <input id="seconds" type="number" min="0" max="59" step="1" value="0">
+              </div>
+            </div>
+            <div class="row" style="justify-content:flex-end;">
+              <button type="button" class="btn" id="cancelEdit">Cancel</button>
+              <button type="button" class="btn" id="applyEdit">Set Time</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="controls">
+        <div class="panel">
+          <button type="button" class="btn" id="togglePlay"><svg class="icon" viewBox="0 0 24 24" fill="currentColor"><path id="playIcon" d="M8 5v14l11-7z"/></svg><span id="playLabel">Play</span></button>
+          <button type="button" class="btn" id="resetBtn"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9"/><path d="M3 4v8h8"/></svg>Reset</button>
+          <button type="button" class="btn" id="addTeamsBtn"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Add Teams</button>
+          <button type="button" class="btn" id="openSettings"><svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V22a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1Z"/></svg>Settings</button>
+        </div>
+        <div class="panel" id="panelPresets">
+          <button type="button" class="btn" data-seconds="30">30s</button>
+          <button type="button" class="btn" data-seconds="60">1 min</button>
+          <button type="button" class="btn" data-seconds="120">2 min</button>
+          <button type="button" class="btn" data-seconds="180">3 min</button>
+          <button type="button" class="btn" data-seconds="300">5 min</button>
+        </div>
+      </section>
+
+      <section aria-hidden="true"></section>
+    </main>
+
+    <aside class="col">
+      <div class="teams" id="rightTeams">
+        <div class="slot" data-row="1"></"></div>
+        <div class="slot" data-row="2"></div>
+        <div class="slot" data-row="3"></div>
+      </div>
+    </aside>
+  </div>
+
+  <dialog id="settings">
+    <div class="sdg-head">
+      <strong style="font-size:18px;">Settings</strong>
+      <div style="flex:1"></div>
+      <button type="button" class="btn" id="closeSettings">Close</button>
+    </div>
+    <div class="sdg-body">
+      <div class="sdg-grid">
+
+        <div class="sdg-card">
+          <h4>Background</h4>
+          <button type="button" class="btn" id="pickBg">Pick Color…</button>
+          <input type="color" id="bgColor" value="#000000" hidden>
+          <span id="bgSwatch" style="display:inline-block;width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:#000;margin-left:8px;"></span>
+          <div class="row" style="margin-top:10px;">
+            <label for="titleFont">Title font:</label>
+            <select id="titleFont" class="btn"></select>
+          </div>
+          <div class="row" style="margin-top:10px;">
+            <label>Title size:</label>
+            <button type="button" class="btn" id="titleSizeSmaller">A−</button>
+            <button type="button" class="btn" id="titleSizeBigger">A+</button>
+            <button type="button" class="btn" id="titleSizeReset">Reset</button>
+            <span id="titleSizeLabel" style="margin-left:6px;color:#cbd5e1;font-size:14px;">—</span>
+          </div>
+        </div>
+
+        <div class="sdg-card">
+          <h4>Flash (last 10s)</h4>
+          <label><input type="checkbox" id="flashEnable"> Enable Flash</label>
+          <div style="margin-top:8px;">
+            <button type="button" class="btn" id="pickFlash">Flash Color…</button>
+            <input type="color" id="flashColor" value="#ffffff" hidden>
+            <span id="flashSwatch" style="display:inline-block;width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,.3);background:#fff;margin-left:8px;"></span>
+          </div>
+          <div style="margin-top:8px;">
+            <label for="flashSpeed">Speed:</label>
+            <select id="flashSpeed" class="btn" style="min-width:160px;">
+              <option value="1500">Slow (1.5s)</option>
+              <option value="1000" selected>Medium (1s)</option>
+              <option value="500">Fast (0.5s)</option>
+              <option value="250">Insane (0.25s)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="sdg-card">
+          <h4>Timer</h4>
+          <div class="row">
+            <label for="timerFont">Timer font:</label>
+            <select id="timerFont" class="btn"></select>
+          </div>
+          <div class="row">
+            <label>Size:</label>
+            <button type="button" class="btn" id="timerSmaller">A−</button>
+            <button type="button" class="btn" id="timerBigger">A+</button>
+            <span id="timerSizeLabel" style="margin-left:6px;color:#cbd5e1;font-size:14px;">100%</span>
+          </div>
+          <div class="row">
+            <button type="button" class="btn" id="toggleTimerFormat">Switch to MM:SS</button>
+            <span id="formatHint" style="font-size:13px;color:#94a3b8;">Current: M:SS</span>
+          </div>
+        </div>
+
+        <div class="sdg-card">
+          <h4>Buzzer (at 0)</h4>
+          <label><input type="checkbox" id="buzzerEnable" checked> Enabled</label>
+          <div style="margin-top:8px;">
+            <label for="buzzerSound">Sound file:</label>
+            <select id="buzzerSound" class="btn" style="min-width:260px;">
+              <option value="buzzer.wav" selected>Buzzer (buzzer.wav)</option>
+              <option value="airhorn.wav">Airhorn (airhorn.wav)</option>
+              <option value="beep.wav">Beep (beep.wav)</option>
+              <option value="bell.wav">Bell (bell.wav)</option>
+              <option value="whistle.wav">Whistle (whistle.wav)</option>
+            </select>
+            <button type="button" class="btn" id="testBuzzer">Test</button>
+            <p style="margin:8px 0 0;color:#cbd5e1;font-size:13px;">Place audio next to this HTML (or set BUZZER_BASE_PATH). Names must match the dropdown.</p>
+          </div>
+        </div>
+
+        <div class="sdg-card" style="grid-column:1 / -1;">
+          <h4>Team Card</h4>
+          <div class="row" style="margin-bottom:10px;">
+            <label for="teamFont">Team names font:</label>
+            <select id="teamFont" class="btn"></select>
+          </div>
+          <div class="row" style="margin-bottom:10px;">
+            <label for="scoreFont">Team score font:</label>
+            <select id="scoreFont" class="btn"></select>
+          </div>
+          <div class="row">
+            <input class="btn team-color" id="teamColor1" type="color" value="#2563eb" title="Team 1 color" />
+            <input class="btn team-color" id="teamColor2" type="color" value="#dc2626" title="Team 2 color" />
+            <input class="btn team-color" id="teamColor3" type="color" value="#16a34a" title="Team 3 color" />
+            <input class="btn team-color" id="teamColor4" type="color" value="#eab308" title="Team 4 color" />
+            <input class="btn team-color" id="teamColor5" type="color" value="#f97316" title="Team 5 color" />
+            <input class="btn team-color" id="teamColor6" type="color" value="#7e22ce" title="Team 6 color" />
+            <button class="btn" id="resetTeams" style="margin-left:auto;">Reset team names & scores</button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </dialog>
+
+  <audio id="buzzerAudio" preload="auto"><source src="buzzer.wav" type="audio/wav"></audio>
+
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const $  = (s, r=document)=>r.querySelector(s);
+  const $$ = (s, r=document)=>Array.from(r.querySelectorAll(s));
+  const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v));}catch(e){}};
+  const load=(k,d)=>{try{const v=JSON.parse(localStorage.getItem(k));return (v===null||v===undefined)?d:v;}catch(e){return d;}};
+  const setAppBg=(c)=>{document.documentElement.style.setProperty('--app-bg', c);};
+
+  const FONT_OPTIONS=[
+    {name:'Saira Stencil One', gf:'Saira+Stencil+One'},
+    {name:'Jaro', gf:'Jaro'},
+    {name:'Chakra Petch', gf:'Chakra+Petch:wght@700'},
+    {name:'Ranchers', gf:'Ranchers'},
+    {name:'Rubik Spray Paint', gf:'Rubik+Spray+Paint'},
+    {name:'Bangers', gf:'Bangers'},
+    {name:'Indie Flower', gf:'Indie+Flower'},
+    {name:'Slackey', gf:'Slackey'},
+    {name:'Black Ops One', gf:'Black+Ops+One'},
+    {name:'Luckiest Guy', gf:'Luckiest+Guy'},
+    {name:'Monoton', gf:'Monoton'},
+    {name:'Press Start 2P', gf:'Press+Start+2P'},
+    {name:'Lilita One', gf:'Lilita+One'},
+    {name:'Paytone One', gf:'Paytone+One'},
+    {name:'Patrick Hand', gf:'Patrick+Hand'},
+    {name:'Covered By Your Grace', gf:'Covered+By+Your+Grace'},
+    {name:'Permanent Marker', gf:'Permanent+Marker'},
+  ];
+  function fillFontSelect(sel, defName){
+    if(!sel) return;
+    sel.innerHTML='';
+    FONT_OPTIONS.forEach(({name,gf})=>{
+      const opt=document.createElement('option');
+      opt.value=`${name}|${gf}`;
+      opt.textContent=name;
+      if(name===defName) opt.selected=true;
+      sel.appendChild(opt);
+    });
+  }
+  function ensureGoogleFontLoaded(gf){
+    if(!gf) return; const id='gf-'+gf.replace(/[^a-z0-9_-]/ig,'');
+    if(document.getElementById(id)) return;
+    const link=document.createElement('link'); link.id=id; link.rel='stylesheet';
+    link.href=`https://fonts.googleapis.com/css2?family=${gf}&display=swap`;
+    document.head.appendChild(link);
+  }
+  function valToFont(v){
+    const [cssName,gf]=String(v||'').split('|');
+    const css = (cssName.includes(' ')&&!cssName.includes('\"'))?`\"${cssName}\"`:cssName;
+    return {css, gf};
+  }
+
+  const titleWrap=$('#titleWrap'), titleEl=$('#title'), titleTools=$('#titleTools');
+  const LS_TITLE_TEXT='pe:titleText', LS_TITLE_SIZE='pe:titleSizePx';
+  try{ const t=localStorage.getItem(LS_TITLE_TEXT); if(t) titleEl.textContent=t;
+       const sz=localStorage.getItem(LS_TITLE_SIZE); if(sz) titleEl.style.fontSize=sz+'px'; }catch(e){}
+  titleEl.addEventListener('blur',()=>{ try{localStorage.setItem(LS_TITLE_TEXT, titleEl.textContent.trim());}catch(e){} });
+  const tSm=$('#titleSmaller'), tBg=$('#titleBigger'), tRs=$('#titleReset');
+  const getTitleSize=()=>parseFloat(getComputedStyle(titleEl).fontSize)||90;
+  const setTitleSize=(px)=>{const c=Math.max(32,Math.min(180,px)); titleEl.style.fontSize=c+'px'; try{localStorage.setItem(LS_TITLE_SIZE,String(c));}catch(e){}};
+  tSm?.addEventListener('click',()=>setTitleSize(getTitleSize()-4));
+  tBg?.addEventListener('click',()=>setTitleSize(getTitleSize()+4));
+  tRs?.addEventListener('click',()=>setTitleSize(96));
+
+  // Ensure tools appear on focus or click
+  function showTitleTools(){ titleWrap?.classList.add('editing'); }
+  function hideTitleTools(){ titleWrap?.classList.remove('editing'); }
+  titleEl.addEventListener('focus', showTitleTools);
+  titleEl.addEventListener('click', showTitleTools);
+  // hide when clicking outside title area (except the tools)
+  document.addEventListener('mousedown', (e)=>{
+    if(!titleWrap.contains(e.target)) hideTitleTools();
+  });
+
+  /* ===== Timer ===== */
+  const overlay=$('#editOverlay'), minutesIn=$('#minutes'), secondsIn=$('#seconds');
+  const applyEdit=$('#applyEdit'), cancelEdit=$('#cancelEdit'), closeOverlay=$('#closeOverlay'), editCard=$('#editCard');
+  const timerWrap=$('#timerWrap');
+  const d1=$('#d1'), d2=$('#d2'), d3=$('#d3'), d4=$('#d4'), timeEl=$('#time');
+  let remaining=load('pe:lastTimeSeconds',60), lastSet=remaining, intervalId=null;
+
+  const settings={
+    bgColor:load('pe:bg','#000000'),
+    flashEnabled:load('pe:flash',false),
+    flashColor:load('pe:flashColor','#ffffff'),
+    flashSpeedMs:load('pe:flashSpeed',1000),
+    buzzerEnabled:load('pe:buzzerOn',true),
+    buzzerFile:load('pe:buzzerFile','buzzer.wav'),
+    timerFont:load('pe:timerFont',{css:'\"Saira Stencil One\"', gf:'Saira+Stencil+One'}),
+    titleFont:load('pe:titleFont',{css:'\"Covered By Your Grace\"', gf:'Covered+By+Your+Grace'}),
+    teamFont: load('pe:teamFont',{css:'\"Slackey\"', gf:'Slackey'}),
+    scoreFont:load('pe:scoreFont',{css:'\"Bangers\"', gf:'Bangers'}),
+    teamColors:load('pe:teamColors',{1:'#2563eb',2:'#dc2626',3:'#16a34a',4:'#eab308',5:'#f97316',6:'#7e22ce'}),
+    timerFormat:load('pe:timerFmt','M:SS'),
+    timerScale:load('pe:timerScale',1.0),
+  };
+
+  function setDigits(total){
+    const m=Math.floor(total/60), s=total%60;
+    const mm=String(m).padStart(settings.timerFormat==='MM:SS'?2:1,'0');
+    const ss=String(s).padStart(2,'0');
+    if(settings.timerFormat==='MM:SS'){
+      timeEl.classList.remove('ms-one'); timeEl.classList.add('ms-two');
+      d1.textContent=mm[0]; d2.textContent=mm[1];
+    }else{
+      timeEl.classList.remove('ms-two'); timeEl.classList.add('ms-one');
+      d2.textContent=mm[0];
+    }
+    d3.textContent=ss[0]; d4.textContent=ss[1];
+  }
+  setDigits(remaining);
+
+  function tick(){ if(remaining>0){ remaining--; setDigits(remaining); handleFlashTick(); if(remaining===0){ stopFlash(); if(settings.buzzerEnabled) playBuzzer(); pause(); } } }
+  function play(){ if(intervalId) return; intervalId=setInterval(tick,1000); $('#playIcon').setAttribute('d','M6 5h4v14H6zM14 5h4v14h-4z'); $('#playLabel').textContent='Pause'; startFlashIfNeeded(); }
+  function pause(){ if(intervalId){clearInterval(intervalId); intervalId=null;} $('#playIcon').setAttribute('d','M8 5v14l11-7z'); $('#playLabel').textContent='Play'; stopFlash(); }
+  function toggle(){ intervalId?pause():play(); }
+
+  $('#togglePlay')?.addEventListener('click', toggle);
+  $('#resetBtn')?.addEventListener('click', ()=>{ pause(); remaining=lastSet; setDigits(remaining); stopFlash(); startFlashIfNeeded(); });
+  $$('#panelPresets .btn').forEach(b=> b.addEventListener('click',()=>{ const secs=parseInt(b.dataset.seconds,10); lastSet=secs; remaining=secs; pause(); setDigits(remaining); save('pe:lastTimeSeconds', lastSet); }));
+
+  let timerScale = settings.timerScale;
+  const timerSizeLabel = $('#timerSizeLabel');
+  function updateTimerSizeLabel(){ if(timerSizeLabel) timerSizeLabel.textContent = Math.round(timerScale*100)+'%'; }
+  function fitTime(){
+    if(!timerWrap || !timeEl) return;
+    const box = timerWrap.getBoundingClientRect();
+    timeEl.style.transform='scale(1)';
+    let low=10, high=Math.max(box.height, box.width)*1.3, target=10;
+    for(let i=0;i<20;i++){
+      const mid=(low+high)>>1;
+      timeEl.style.fontSize=mid+'px';
+      const r=timeEl.getBoundingClientRect();
+      if(r.width <= box.width*0.92 && r.height <= box.height*0.94){ target=mid; low=mid+1; } else { high=mid-1; }
+    }
+    const fmtFactor = (settings.timerFormat==='MM:SS') ? 0.9 : 1.0;
+    timeEl.style.fontSize=(target*fmtFactor)+'px';
+    timeEl.style.transform = `scale(${timerScale})`;
+    updateTimerSizeLabel();
+  }
+  new ResizeObserver(()=>fitTime()).observe(timerWrap);
+  window.addEventListener('load', ()=>{ setDigits(remaining); fitTime(); });
+  window.addEventListener('resize', ()=>{ fitTime(); });
+  window.addEventListener('orientationchange', ()=>{ fitTime(); });
+  (function retryFit(n=10){ fitTime(); if(n>0) setTimeout(()=>retryFit(n-1), 100); })();
+
+  window.addEventListener('keydown', e=>{
+    if(e.code==='Space'){
+      const ae=document.activeElement;
+      const editing=ae&&(ae.isContentEditable||['INPUT','TEXTAREA','SELECT'].includes(ae.tagName));
+      if(editing){ return; }
+      e.preventDefault(); toggle();
+    }
+  });
+
+  timerWrap?.addEventListener('click', ()=>{ if (overlay.style.display==='flex') return; minutesIn.value=Math.floor(remaining/60); secondsIn.value=remaining%60; overlay.style.display='flex'; setTimeout(()=>{ minutesIn.focus(); minutesIn.select(); },0); });
+  overlay?.addEventListener('click', e=>{ if (!editCard.contains(e.target)) overlay.style.display='none'; });
+  editCard?.addEventListener('click', e=> e.stopPropagation());
+  cancelEdit?.addEventListener('click', ()=> overlay.style.display='none');
+  closeOverlay?.addEventListener('click', ()=> overlay.style.display='none');
+  window.addEventListener('keydown', e=>{ if (overlay && overlay.style.display==='flex'){ if(e.key==='Escape') overlay.style.display='none'; if(e.key==='Enter') applyEdit?.click(); } });
+  applyEdit?.addEventListener('click', ()=>{ const m=Math.max(0,parseInt(minutesIn.value||'0',10)); const s=Math.max(0,Math.min(59,parseInt(secondsIn.value||'0',10))); lastSet=m*60+s; remaining=lastSet; save('pe:lastTimeSeconds', lastSet); pause(); setDigits(remaining); overlay.style.display='none'; fitTime(); });
+
+  /* ===== Teams ===== */
+  const leftCol=$('#leftTeams'), rightCol=$('#rightTeams');
+  const TEAM_SPECS=[null,
+    {name:'Team 1', color:'#2563eb', side:'left',  row:2},
+    {name:'Team 2', color:'#dc2626', side:'right', row:2},
+    {name:'Team 3', color:'#16a34a', side:'left',  row:1},
+    {name:'Team 4', color:'#eab308', side:'right', row:1},
+    {name:'Team 5', color:'#f97316', side:'left',  row:3},
+    {name:'Team 6', color:'#7e22ce', side:'right', row:3},
+  ];
+  function slotFor(side,row){ const host=side==='left'?leftCol:rightCol; return host?.querySelector(`.slot[data-row="${row}"]`); }
+  const present=new Set();
+
+  function holdToConfirm(btn, action, ms=700){
+    let t=null;
+    const start=()=>{ if(t) return; t=setTimeout(()=>{ t=null; action(); }, ms); btn.classList.add('hold'); };
+    const clear=()=>{ if(t){ clearTimeout(t); t=null; } btn.classList.remove('hold'); };
+    ['mousedown','touchstart'].forEach(e=>btn.addEventListener(e,start));
+    ['mouseup','mouseleave','touchend','touchcancel'].forEach(e=>btn.addEventListener(e,clear));
+  }
+
+  function autoFitName(el){
+    const host = el.parentElement; if(!host) return;
+    const max = 96, min = 28;
+    let size = parseFloat(getComputedStyle(el).fontSize) || 72;
+    for(let i=0;i<40 && size<max;i++){
+      el.style.fontSize = (size+2)+'px';
+      const r = el.getBoundingClientRect(), h = host.getBoundingClientRect();
+      if(r.width > h.width*0.98 || r.height > h.height*0.98){ el.style.fontSize = size+'px'; break; }
+      size += 2;
+    }
+    for(let i=0;i<40 && size>min;i++){
+      const r = el.getBoundingClientRect(), h = host.getBoundingClientRect();
+      if(r.width <= h.width*0.98 && r.height <= h.height*0.98) break;
+      size -= 2; el.style.fontSize = size+'px';
+    }
+  }
+
+  function createTeamCard(idx){
+    const spec=TEAM_SPECS[idx]; const slot=slotFor(spec.side,spec.row); if(!slot) return;
+    const card=document.createElement('div'); card.className='team-card'; card.dataset.teamIndex=String(idx);
+    card.style.background=settings.teamColors[idx]||spec.color;
+
+    const tools=document.createElement('div'); tools.className='card-tools';
+    const del=document.createElement('button'); del.type='button'; del.className='tiny'; del.title='Delete (press & hold)';
+    del.innerHTML='<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>';
+    tools.append(del);
+
+    const nameWrap=document.createElement('div'); nameWrap.className='t-name';
+    const name=document.createElement('div'); name.className='team-name'; name.contentEditable='true'; name.spellcheck=false; name.textContent=spec.name;
+    name.style.fontFamily=settings.teamFont.css;
+    nameWrap.append(name);
+
+    const scoreWrap=document.createElement('div'); scoreWrap.className='score-wrap';
+    const minus=document.createElement('button'); minus.type='button'; minus.className='score-btn'; minus.textContent='−';
+    const score=document.createElement('div'); score.className='score'; score.textContent='0'; score.contentEditable='true'; score.inputMode='numeric';
+    score.style.fontFamily=settings.scoreFont.css;
+    const plus=document.createElement('button'); plus.type='button'; plus.className='score-btn'; plus.textContent='+';
+    scoreWrap.append(minus,score,plus);
+
+    card.append(nameWrap,scoreWrap,tools); slot.replaceChildren(card);
+
+    const setScore=(n)=>{ n=Math.floor(n); score.textContent=String(n); };
+    plus.addEventListener('click',()=>setScore(parseInt(score.textContent||'0',10)+1));
+    minus.addEventListener('click',()=>setScore(parseInt(score.textContent||'0',10)-1));
+    score.addEventListener('blur',()=>{ const v=parseInt(score.textContent||'0',10); setScore(isNaN(v)?0:v); });
+
+    holdToConfirm(del, ()=>{ slot.replaceChildren(); present.delete(idx); });
+
+    autoFitName(name);
+    name.addEventListener('input', ()=>autoFitName(name));
+    new ResizeObserver(()=>autoFitName(name)).observe(nameWrap);
+
+    present.add(idx);
+  }
+
+  $('#addTeamsBtn')?.addEventListener('click', ()=>{
+    for(let i=1;i<=6;i++){ if(!present.has(i)){ createTeamCard(i); return; } }
+  });
+
+  /* ===== Settings dialog + controls ===== */
+  const settingsDlg=$('#settings');
+  $('#openSettings')?.addEventListener('click',()=>{ if(settingsDlg?.showModal) settingsDlg.showModal(); else if(settingsDlg) settingsDlg.style.display='block'; });
+  $('#closeSettings')?.addEventListener('click',()=>{ if(settingsDlg?.close) settingsDlg.close(); else if(settingsDlg) settingsDlg.style.display='none'; });
+
+  // Fill font selects
+  fillFontSelect($('#timerFont'), settings.timerFont.css.replace(/\"/g,''));
+  fillFontSelect($('#titleFont'), settings.titleFont.css.replace(/\"/g,''));
+  fillFontSelect($('#teamFont'),  settings.teamFont.css.replace(/\"/g,''));
+  fillFontSelect($('#scoreFont'), settings.scoreFont.css.replace(/\"/g,''));
+
+  // Apply initial appearance
+  setAppBg(settings.bgColor); $('#bgSwatch').style.background=settings.bgColor;
+  [settings.timerFont,settings.titleFont,settings.teamFont,settings.scoreFont].forEach(f=>ensureGoogleFontLoaded(f.gf));
+  const buzzerEl=$('#buzzerAudio'); const BUZZER_BASE_PATH=''; function playBuzzer(){ try{ buzzerEl.currentTime=0; buzzerEl.play().catch(()=>{}); }catch(e){} }
+  $('#flashEnable').checked=settings.flashEnabled; $('#flashColor').value=settings.flashColor; $('#flashSwatch').style.background=settings.flashColor; $('#flashSpeed').value=String(settings.flashSpeedMs);
+  $('#buzzerEnable').checked=settings.buzzerEnabled; $('#buzzerSound').value=settings.buzzerFile;
+
+  timeEl.style.fontFamily=settings.timerFont.css;
+  titleEl.style.fontFamily=settings.titleFont.css;
+  $$('.team-name').forEach(el=>{ el.style.fontFamily=settings.teamFont.css; });
+  $$('.score').forEach(el=>{ el.style.fontFamily=settings.scoreFont.css; });
+
+  // Bind color inputs (visible) — show current, update on change
+  const colorInputs = $$('.team-color');
+  colorInputs.forEach((inp, idx)=>{
+    const i = idx+1;
+    // initialize with saved color
+    inp.value = settings.teamColors[i] || inp.value;
+    inp.addEventListener('input', (e)=>{
+      const color = e.target.value;
+      settings.teamColors[i] = color;
+      save('pe:teamColors', settings.teamColors);
+      // update existing cards of that index
+      $$('.team-card').forEach(card=>{
+        if(parseInt(card.dataset.teamIndex,10)===i){ card.style.background = color; }
+      });
+    });
+  });
+
+  
+  // Reset team names & scores to defaults
+  const resetBtn = document.getElementById('resetTeams');
+  if (resetBtn) {
+    resetBtn.addEventListener('click', () => {
+      document.querySelectorAll('.team-card').forEach(card => {
+        const idx = parseInt(card.dataset.teamIndex, 10);
+        const spec = TEAM_SPECS[idx];
+        const nameEl = card.querySelector('.team-name');
+        const scoreEl = card.querySelector('.score');
+        if (nameEl && spec) { nameEl.textContent = spec.name; autoFitName(nameEl); }
+        if (scoreEl) { scoreEl.textContent = '0'; }
+      });
+    });
+  }
+
+
+  // Background controls
+  $('#pickBg')?.addEventListener('click',()=>$('#bgColor')?.click());
+  $('#bgColor')?.addEventListener('input',e=>{ settings.bgColor=e.target.value; save('pe:bg',settings.bgColor); setAppBg(settings.bgColor); $('#bgSwatch').style.background=settings.bgColor; });
+
+  // Flash controls
+  $('#flashEnable')?.addEventListener('change',e=>{ settings.flashEnabled=!!e.target.checked; save('pe:flash',settings.flashEnabled); if(!settings.flashEnabled) stopFlash(); else startFlashIfNeeded(); });
+  $('#pickFlash')?.addEventListener('click',()=>$('#flashColor')?.click());
+  $('#flashColor')?.addEventListener('input',e=>{ settings.flashColor=e.target.value; save('pe:flashColor',settings.flashColor); $('#flashSwatch').style.background=settings.flashColor; });
+  $('#flashSpeed')?.addEventListener('change',e=>{ settings.flashSpeedMs=parseInt(e.target.value,10)||1000; save('pe:flashSpeed',settings.flashSpeedMs); if(isFlashing){ stopFlash(); startFlashIfNeeded(true); } });
+
+  // Buzzer controls
+  function updateBuzzerSrc(){ buzzerEl.src = BUZZER_BASE_PATH + settings.buzzerFile; }
+  updateBuzzerSrc();
+  $('#buzzerEnable')?.addEventListener('change',e=>{ settings.buzzerEnabled=!!e.target.checked; save('pe:buzzerOn',settings.buzzerEnabled); });
+  $('#buzzerSound')?.addEventListener('change',e=>{ settings.buzzerFile=e.target.value; save('pe:buzzerFile',settings.buzzerFile); updateBuzzerSrc(); });
+  $('#testBuzzer')?.addEventListener('click',()=>{ if(!settings.buzzerEnabled) return; playBuzzer(); });
+
+  // Font pickers
+  $('#timerFont')?.addEventListener('change',e=>{ settings.timerFont=valToFont(e.target.value); save('pe:timerFont',settings.timerFont); ensureGoogleFontLoaded(settings.timerFont.gf); timeEl.style.fontFamily=settings.timerFont.css; fitTime(); });
+  $('#titleFont')?.addEventListener('change',e=>{ settings.titleFont=valToFont(e.target.value); save('pe:titleFont',settings.titleFont); ensureGoogleFontLoaded(settings.titleFont.gf); titleEl.style.fontFamily=settings.titleFont.css; });
+  $('#teamFont')?.addEventListener('change',e=>{ settings.teamFont=valToFont(e.target.value); save('pe:teamFont',settings.teamFont); ensureGoogleFontLoaded(settings.teamFont.gf); $$('.team-name').forEach(el=>{ el.style.fontFamily=settings.teamFont.css; autoFitName(el); }); });
+  $('#scoreFont')?.addEventListener('change',e=>{ settings.scoreFont=valToFont(e.target.value); save('pe:scoreFont',settings.scoreFont); ensureGoogleFontLoaded(settings.scoreFont.gf); $$('.score').forEach(el=>{ el.style.fontFamily=settings.scoreFont.css; }); });
+
+  // Timer format toggle + size buttons
+  const toggleFmtBtn=$('#toggleTimerFormat'), formatHint=$('#formatHint');
+  function applyFormatUI(){
+    if(settings.timerFormat==='MM:SS'){ toggleFmtBtn.textContent='Switch to M:SS'; formatHint.textContent='Current: MM:SS'; }
+    else{ toggleFmtBtn.textContent='Switch to MM:SS'; formatHint.textContent='Current: M:SS'; }
+  }
+  applyFormatUI();
+  toggleFmtBtn.addEventListener('click',()=>{
+    settings.timerFormat = settings.timerFormat==='MM:SS' ? 'M:SS' : 'MM:SS';
+    save('pe:timerFmt', settings.timerFormat);
+    setDigits(remaining); fitTime(); applyFormatUI();
+  });
+  function setTimerScale(val){ timerScale=Math.max(0.5,Math.min(1.6,val)); save('pe:timerScale',timerScale); fitTime(); }
+  $('#timerSmaller').addEventListener('click',()=> setTimerScale(+(timerScale-0.05).toFixed(2)));
+  $('#timerBigger').addEventListener('click',()=> setTimerScale(+(timerScale+0.05).toFixed(2)));
+  updateTimerSizeLabel();
+
+  /* Flash engine */
+  let flashTimer=null, isFlashing=false, baseBg=settings.bgColor;
+  function startFlashIfNeeded(force=false){
+    if(!settings.flashEnabled) return;
+    if(!intervalId && !force) return;
+    if(remaining>10 && !force) return;
+    if(isFlashing) return;
+    isFlashing=true; baseBg=settings.bgColor||'#000';
+    let on=false; setAppBg(baseBg);
+    flashTimer=setInterval(()=>{
+      if(!settings.flashEnabled || remaining===0 || !intervalId || remaining>10){ stopFlash(); return; }
+      on=!on; setAppBg(on?settings.flashColor:baseBg);
+    }, settings.flashSpeedMs||1000);
+  }
+  function stopFlash(){ if(flashTimer){clearInterval(flashTimer); flashTimer=null;} isFlashing=false; setAppBg(settings.bgColor||'#000'); }
+  function handleFlashTick(){ if(settings.flashEnabled){ if(remaining===10){ startFlashIfNeeded(true); } if(remaining===0){ stopFlash(); } } }
+
+});
+</script>
+</body>
+</html>
